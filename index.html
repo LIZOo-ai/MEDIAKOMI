@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#012D6E">
+<title>Медиакоми — Угадай цену квартиры</title>
+<style>
+  :root{
+    --hse-blue:#012D6E;
+    --hse-blue-dark:#001E4C;
+    --hse-blue-light:#3D63A5;
+    --hse-blue-bg:#F0F4FA;
+    --accent:#F5C518;
+    --good:#2E9E5B;
+    --bad:#D64545;
+    --text:#1A2233;
+    --muted:#7A8499;
+    --card-bg:#FFFFFF;
+    --radius:16px;
+    --shadow:0 4px 20px rgba(1,45,110,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:var(--hse-blue-bg);
+    color:var(--text);
+    display:flex;justify-content:center;
+    min-height:100dvh;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{
+    width:100%;max-width:480px;
+    display:flex;flex-direction:column;
+    min-height:100dvh;
+    background:var(--hse-blue-bg);
+    position:relative;
+  }
+  .screen{display:none;flex-direction:column;flex:1;min-height:0}
+  .screen.active{display:flex}
+
+  /* ---------- Шапка ---------- */
+  .topbar{
+    background:var(--hse-blue);
+    color:#fff;
+    padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px;
+    flex-shrink:0;
+  }
+  .topbar .brand{display:flex;align-items:center;gap:10px}
+  .logo-mark{
+    width:34px;height:34px;border-radius:8px;
+    background:var(--accent);color:var(--hse-blue);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:17px;flex-shrink:0;
+  }
+  .brand-name{font-size:19px;font-weight:700;letter-spacing:.2px}
+  .brand-sub{font-size:11px;opacity:.75;margin-top:1px}
+
+  .progress-wrap{margin-top:12px}
+  .progress-label{display:flex;justify-content:space-between;font-size:12px;opacity:.85;margin-bottom:6px}
+  .progress-track{height:6px;border-radius:3px;background:rgba(255,255,255,.25);overflow:hidden}
+  .progress-fill{height:100%;width:0;background:var(--accent);border-radius:3px;transition:width .35s ease}
+  .score-chip{background:rgba(255,255,255,.15);border-radius:12px;padding:3px 10px;font-weight:600}
+
+  /* ---------- Главный экран ---------- */
+  #screen-start .content{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 20px;gap:18px}
+  .hero{
+    background:var(--hse-blue);
+    color:#fff;border-radius:var(--radius);
+    padding:28px 22px;box-shadow:var(--shadow);
+  }
+  .hero h1{font-size:26px;line-height:1.2;margin-bottom:8px}
+  .hero h1 span{color:var(--accent)}
+  .hero p{font-size:14px;opacity:.85;line-height:1.45}
+  .rules{display:flex;flex-direction:column;gap:10px}
+  .rule{
+    display:flex;gap:12px;align-items:flex-start;
+    background:var(--card-bg);border-radius:12px;padding:12px 14px;
+    box-shadow:var(--shadow);font-size:14px;line-height:1.4;
+  }
+  .rule-num{
+    width:26px;height:26px;border-radius:50%;flex-shrink:0;
+    background:var(--hse-blue);color:#fff;font-weight:700;font-size:13px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .btn{
+    display:block;width:100%;
+    border:none;border-radius:14px;
+    padding:16px;font-size:17px;font-weight:700;
+    cursor:pointer;text-align:center;
+    transition:transform .12s ease, opacity .12s;
+  }
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:var(--accent);color:var(--hse-blue-dark);box-shadow:0 4px 14px rgba(245,197,24,.35)}
+  .btn-secondary{background:var(--hse-blue);color:#fff}
+  .btn-ghost{background:transparent;color:var(--hse-blue);border:2px solid var(--hse-blue);padding:13px;font-size:15px}
+  .btn-link{
+    display:inline-flex;align-items:center;gap:6px;
+    background:rgba(1,45,110,.08);color:var(--hse-blue);
+    border-radius:12px;padding:10px 14px;
+    font-size:13.5px;font-weight:600;text-decoration:none;
+  }
+  .btn-link:active{background:rgba(1,45,110,.15)}
+
+  /* ---------- Экран лота ---------- */
+  #screen-game{overflow:hidden}
+  .game-scroll{flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column}
+  .lot-card{
+    flex:1;display:flex;flex-direction:column;min-height:0;
+    padding:14px 14px calc(env(safe-area-inset-bottom,0px) + 14px);
+    gap:12px;
+  }
+  /* Галерея */
+  .gallery{position:relative;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);flex-shrink:0}
+  .gallery-track{
+    display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+    aspect-ratio:4/3;background:#0a1630;
+  }
+  .gallery-track::-webkit-scrollbar{display:none}
+  .gallery-track img{
+    width:100%;height:100%;flex:0 0 100%;
+    object-fit:cover;scroll-snap-align:center;
+    background:linear-gradient(120deg,#0a1630 30%,#1a2f5e 70%);
+  }
+  .gallery-track img.loaded{animation:fadeIn .3s ease}
+  @keyframes fadeIn{from{opacity:.4}to{opacity:1}}
+  .gallery-badge{
+    position:absolute;top:10px;right:10px;
+    background:rgba(1,22,55,.72);color:#fff;
+    font-size:12px;font-weight:600;
+    border-radius:12px;padding:4px 10px;
+    backdrop-filter:blur(4px);
+  }
+  .gallery-dots{
+    position:absolute;bottom:10px;left:0;right:0;
+    display:flex;justify-content:center;gap:6px;
+  }
+  .gallery-dots span{
+    width:7px;height:7px;border-radius:50%;
+    background:rgba(255,255,255,.45);transition:all .2s;
+  }
+  .gallery-dots span.on{background:var(--accent);width:20px;border-radius:4px}
+
+  /* Инфо о квартире */
+  .lot-info{
+    background:var(--card-bg);border-radius:var(--radius);
+    padding:14px 16px;box-shadow:var(--shadow);flex-shrink:0;
+  }
+  .lot-title{font-size:16px;font-weight:700;line-height:1.3}
+  .lot-street{font-size:13.5px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:5px}
+  .lot-addr{font-size:12px;color:var(--muted);margin-top:6px}
+
+  /* Блок оценки */
+  .estimate{
+    background:var(--card-bg);border-radius:var(--radius);
+    padding:16px;box-shadow:var(--shadow);flex-shrink:0;
+    margin-top:auto;
+  }
+  .estimate-label{font-size:14px;font-weight:600;margin-bottom:4px}
+  .guess-value{
+    font-size:32px;font-weight:800;color:var(--hse-blue);
+    letter-spacing:-.5px;margin-bottom:12px;
+    font-variant-numeric:tabular-nums;
+  }
+  .guess-value small{font-size:16px;font-weight:600;color:var(--muted);margin-left:2px}
+
+  input[type=range]{
+    width:100%;height:36px;
+    -webkit-appearance:none;appearance:none;
+    background:transparent;cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:8px;border-radius:4px;
+    background:linear-gradient(90deg,var(--hse-blue-light) 0%,var(--hse-blue) 100%);
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:30px;height:30px;border-radius:50%;
+    background:#fff;border:4px solid var(--accent);
+    box-shadow:0 2px 8px rgba(0,0,0,.25);
+    margin-top:-11px;
+  }
+  input[type=range]::-moz-range-track{height:8px;border-radius:4px;background:var(--hse-blue)}
+  input[type=range]::-moz-range-thumb{
+    width:26px;height:26px;border-radius:50%;
+    background:#fff;border:4px solid var(--accent);
+    box-shadow:0 2px 8px rgba(0,0,0,.25);
+  }
+  .range-minmax{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:2px}
+
+  /* ---------- Экран результата лота ---------- */
+  .result-card{
+    flex:1;display:flex;flex-direction:column;
+    padding:18px 16px calc(env(safe-area-inset-bottom,0px) + 16px);
+    gap:12px;overflow-y:auto;
+  }
+  .verdict{
+    border-radius:var(--radius);padding:18px 16px;color:#fff;
+    box-shadow:var(--shadow);text-align:center;flex-shrink:0;
+  }
+  .verdict.perfect{background:linear-gradient(135deg,#2E9E5B,#1E7A44)}
+  .verdict.close{background:linear-gradient(135deg,#3D63A5,#012D6E)}
+  .verdict.far{background:linear-gradient(135deg,#D64545,#A83232)}
+  .verdict .v-emoji{font-size:34px}
+  .verdict .v-title{font-size:18px;font-weight:800;margin-top:6px}
+  .verdict .v-sub{font-size:13px;opacity:.9;margin-top:4px}
+  .points-big{font-size:40px;font-weight:800;margin-top:8px}
+  .points-big small{font-size:15px;font-weight:600;opacity:.75}
+
+  .compare{display:flex;gap:10px;flex-shrink:0}
+  .compare-box{
+    flex:1;background:var(--card-bg);border-radius:var(--radius);
+    padding:12px;text-align:center;box-shadow:var(--shadow);
+  }
+  .compare-box .cb-label{font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .compare-box .cb-value{font-size:19px;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums}
+  .compare-box.user .cb-value{color:var(--hse-blue)}
+  .compare-box.real .cb-value{color:var(--good)}
+  .diff-row{
+    background:var(--card-bg);border-radius:var(--radius);
+    padding:13px 16px;box-shadow:var(--shadow);
+    display:flex;justify-content:space-between;align-items:center;flex-shrink:0;
+  }
+  .diff-row .d-label{font-size:13px;color:var(--muted);font-weight:600}
+  .diff-row .d-value{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}
+  .diff-row .d-value.over{color:var(--bad)}
+  .diff-row .d-value.under{color:var(--hse-blue-light)}
+  .diff-row .d-value.zero{color:var(--good)}
+
+  /* ---------- Финальный экран ---------- */
+  .final-card{
+    flex:1;display:flex;flex-direction:column;
+    padding:18px 16px calc(env(safe-area-inset-bottom,0px) + 16px);
+    gap:14px;overflow-y:auto;
+  }
+  .archetype{
+    border-radius:var(--radius);padding:22px 18px;text-align:center;color:#fff;
+    box-shadow:var(--shadow);flex-shrink:0;
+    background:linear-gradient(135deg,#3D63A5,#012D6E);
+  }
+  .archetype.greedy{background:linear-gradient(135deg,#3D63A5,#012D6E)}
+  .archetype.adequate{background:linear-gradient(135deg,#2E9E5B,#1E7A44)}
+  .archetype.spendthrift{background:linear-gradient(135deg,#E07A3F,#C0452B)}
+  .archetype .a-emoji{font-size:44px}
+  .archetype .a-title{font-size:22px;font-weight:800;margin-top:8px}
+  .archetype .a-desc{font-size:13.5px;opacity:.9;margin-top:8px;line-height:1.45}
+  .total-row{
+    background:var(--card-bg);border-radius:var(--radius);
+    padding:16px;box-shadow:var(--shadow);text-align:center;flex-shrink:0;
+  }
+  .total-row .t-label{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  .total-row .t-value{font-size:44px;font-weight:800;color:var(--hse-blue);margin-top:4px}
+  .total-row .t-max{font-size:14px;color:var(--muted);font-weight:600}
+  .rounds-list{display:flex;flex-direction:column;gap:8px}
+  .round-item{
+    background:var(--card-bg);border-radius:12px;
+    padding:10px 12px;box-shadow:var(--shadow);
+    display:flex;align-items:center;gap:10px;font-size:13px;
+  }
+  .round-item .r-num{
+    width:24px;height:24px;border-radius:50%;flex-shrink:0;
+    background:var(--hse-blue-bg);color:var(--hse-blue);
+    font-weight:700;font-size:12px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .round-item .r-info{flex:1;min-width:0}
+  .round-item .r-title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .round-item .r-prices{color:var(--muted);font-size:11.5px;margin-top:2px}
+  .round-item .r-points{
+    font-weight:800;color:var(--hse-blue);flex-shrink:0;
+    font-variant-numeric:tabular-nums;
+  }
+  .round-item .r-points.good{color:var(--good)}
+  .round-item .r-points.bad{color:var(--bad)}
+
+  .legend{background:var(--card-bg);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+  .legend-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .legend-item{display:flex;gap:8px;font-size:12.5px;line-height:1.4;color:var(--text);margin-top:5px}
+  .legend-item b{color:var(--hse-blue)}
+
+  .footnote{font-size:11px;color:var(--muted);text-align:center;line-height:1.5;padding:4px 10px}
+  .footnote a{color:var(--hse-blue);font-weight:600}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ГЛАВНЫЙ ЭКРАН -->
+  <section id="screen-start" class="screen active">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo-mark">МК</div>
+        <div>
+          <div class="brand-name">Медиакоми</div>
+          <div class="brand-sub">Игра «Угадай цену квартиры»</div>
+        </div>
+      </div>
+    </div>
+    <div class="content">
+      <div class="hero">
+        <h1>Сможешь угадать,<br>сколько стоит <span>квартира в Коми?</span></h1>
+        <p>Реальные объявления с Авито в Республике Коми. Проверь, знаешь ли ты цены на северном рынке жилья.</p>
+      </div>
+      <div class="rules">
+        <div class="rule"><div class="rule-num">1</div><div>Смотри фотографии квартиры — 10 лотов за игру.</div></div>
+        <div class="rule"><div class="rule-num">2</div><div>Двигай бегунок и выставь цену, которую считаешь правильной, затем нажми «Оценить».</div></div>
+        <div class="rule"><div class="rule-num">3</div><div>Узнай реальную цену, разницу и баллы. До 100 баллов за лот, максимум 1000 за игру.</div></div>
+        <div class="rule"><div class="rule-num">4</div><div>В конце узнай, кто ты: <b>Адекватный квартирант</b>, <b>Жадный студент</b> или <b>Транжира</b> 😉</div></div>
+      </div>
+      <button class="btn btn-primary" id="btn-start">Запуск игры</button>
+      <div class="footnote">Данные: реальные объявления Avito · Республика Коми, г. Инта</div>
+    </div>
+  </section>
+
+  <!-- ЭКРАН ЛОТА -->
+  <section id="screen-game" class="screen">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo-mark">МК</div>
+        <div>
+          <div class="brand-name">Медиакоми</div>
+          <div class="brand-sub">Оцени квартиру</div>
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span id="round-label">Квартира 1 из 10</span>
+          <span class="score-chip" id="score-chip">0 баллов</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      </div>
+    </div>
+    <div class="game-scroll">
+      <div class="lot-card">
+        <div class="gallery" id="gallery">
+          <div class="gallery-track" id="gallery-track"></div>
+          <div class="gallery-badge" id="gallery-badge">1 / 5</div>
+          <div class="gallery-dots" id="gallery-dots"></div>
+        </div>
+        <div class="lot-info">
+          <div class="lot-title" id="lot-title"></div>
+          <div class="lot-street" id="lot-street">📍 <span id="lot-street-name"></span></div>
+          <div class="lot-addr">Реальные объявления Авито · Республика Коми</div>
+        </div>
+        <div class="estimate">
+          <div class="estimate-label">Сколько стоит эта квартира?</div>
+          <div class="guess-value"><span id="guess-value">750 000</span><small>₽</small></div>
+          <input type="range" id="price-slider" min="50000" max="2000000" step="10000" value="750000">
+          <div class="range-minmax"><span>50 тыс. ₽</span><span>2 млн ₽</span></div>
+          <button class="btn btn-secondary" id="btn-guess" style="margin-top:12px">Оценить</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ЭКРАН РЕЗУЛЬТАТА ЛОТА -->
+  <section id="screen-result" class="screen">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo-mark">МК</div>
+        <div>
+          <div class="brand-name">Медиакоми</div>
+          <div class="brand-sub">Результат оценки</div>
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span id="round-label-2">Квартира 1 из 10</span>
+          <span class="score-chip" id="score-chip-2">0 баллов</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill-2"></div></div>
+      </div>
+    </div>
+    <div class="result-card">
+      <div class="verdict" id="verdict">
+        <div class="v-emoji" id="v-emoji">🎯</div>
+        <div class="v-title" id="v-title">Точно в цель!</div>
+        <div class="v-sub" id="v-sub">Отклонение всего 2%</div>
+        <div class="points-big"><span id="v-points">100</span> <small>баллов</small></div>
+      </div>
+      <div class="compare">
+        <div class="compare-box user">
+          <div class="cb-label">Твоя оценка</div>
+          <div class="cb-value" id="cb-user">—</div>
+        </div>
+        <div class="compare-box real">
+          <div class="cb-label">Реальная цена</div>
+          <div class="cb-value" id="cb-real">—</div>
+        </div>
+      </div>
+      <div class="diff-row">
+        <span class="d-label">Разница</span>
+        <span class="d-value" id="diff-value">—</span>
+      </div>
+      <a class="btn-link" id="lot-link" href="#" target="_blank" rel="noopener">🔗 Смотреть реальное объявление →</a>
+      <button class="btn btn-primary" id="btn-next" style="margin-top:auto">Следующая квартира</button>
+    </div>
+  </section>
+
+  <!-- ФИНАЛЬНЫЙ ЭКРАН -->
+  <section id="screen-final" class="screen">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo-mark">МК</div>
+        <div>
+          <div class="brand-name">Медиакоми</div>
+          <div class="brand-sub">Итоги игры</div>
+        </div>
+      </div>
+    </div>
+    <div class="final-card">
+      <div class="archetype" id="archetype">
+        <div class="a-emoji" id="a-emoji">🏠</div>
+        <div class="a-title" id="a-title">Адекватный квартирант</div>
+        <div class="a-desc" id="a-desc"></div>
+      </div>
+      <div class="total-row">
+        <div class="t-label">Твой результат</div>
+        <div class="t-value" id="total-points">0</div>
+        <div class="t-max">из 1000 возможных баллов</div>
+      </div>
+      <div class="rounds-list" id="rounds-list"></div>
+      <div class="legend">
+        <div class="legend-title">Архетипы игры</div>
+        <div class="legend-item"><span>😏</span><span><b>Жадный студент</b> — стабильно называл цены ниже реальных.</span></div>
+        <div class="legend-item"><span>🤝</span><span><b>Адекватный квартирант</b> — оценки в основном совпадали с реальными.</span></div>
+        <div class="legend-item"><span>💸</span><span><b>Транжира</b> — как правило, называл цены выше реальных.</span></div>
+      </div>
+      <button class="btn btn-primary" id="btn-restart">Играть ещё раз</button>
+      <div class="footnote">Медиакоми · игра по реальным объявлениям Республики Коми · <a href="https://www.hse.ru" target="_blank" rel="noopener">стиль: ВШЭ</a></div>
+    </div>
+  </section>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Настройки игры ----------
+  const TOTAL_ROUNDS = 10;
+  const SLIDER_MIN = 50000, SLIDER_MAX = 2000000, SLIDER_STEP = 10000;
+  const SLIDER_DEFAULT = 750000;
+
+  // ---------- Элементы ----------
+  const $ = (id) => document.getElementById(id);
+  const screens = { start: $("screen-start"), game: $("screen-game"), result: $("screen-result"), final: $("screen-final") };
+  const slider = $("price-slider");
+
+  // ---------- Состояние ----------
+  let deck = [];          // 10 лотов текущей игры
+  let round = 0;          // 0-based индекс текущего лота
+  let totalScore = 0;
+  let results = [];       // {guess, price, diff, diffPct, signedPct, points, listing}
+
+  // ---------- Утилиты ----------
+  function fmt(n){ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+
+  function showScreen(name){
+    Object.values(screens).forEach(s => s.classList.remove("active"));
+    screens[name].classList.add("active");
+    window.scrollTo(0,0);
+  }
+
+  // Баллы: <=5% отклонения — максимум 100, дальше −2 балла за каждый % сверх 5
+  function calcPoints(errPct){
+    const over = Math.max(0, errPct - 5);
+    return Math.max(0, Math.round(100 - over * 2));
+  }
+
+  // ---------- Галерея ----------
+  let currentListing = null;
+  function renderGallery(listing){
+    const track = $("gallery-track");
+    const dots = $("gallery-dots");
+    track.innerHTML = "";
+    dots.innerHTML = "";
+    listing.photos.forEach((src, i) => {
+      const img = document.createElement("img");
+      img.src = src;
+      img.alt = "Фото квартиры " + (i+1);
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.addEventListener("load", () => img.classList.add("loaded"));
+      track.appendChild(img);
+      const dot = document.createElement("span");
+      if (i === 0) dot.classList.add("on");
+      dots.appendChild(dot);
+    });
+    track.scrollLeft = 0;
+    updateGalleryBadge(0, listing.photos.length);
+    track.onscroll = () => {
+      const idx = Math.round(track.scrollLeft / track.clientWidth);
+      updateGalleryBadge(idx, listing.photos.length);
+      [...dots.children].forEach((d, i) => d.classList.toggle("on", i === idx));
+    };
+  }
+  function updateGalleryBadge(idx, total){
+    $("gallery-badge").textContent = (idx+1) + " / " + total;
+  }
+
+  // ---------- Ход игры ----------
+  function startGame(){
+    // перемешиваем объявления и берём 10
+    deck = LISTINGS.slice().sort(() => Math.random() - 0.5).slice(0, TOTAL_ROUNDS);
+    round = 0;
+    totalScore = 0;
+    results = [];
+    showRound();
+    showScreen("game");
+  }
+
+  function showRound(){
+    const listing = deck[round];
+    currentListing = listing;
+    slider.min = SLIDER_MIN; slider.max = SLIDER_MAX; slider.step = SLIDER_STEP;
+    slider.value = SLIDER_DEFAULT;
+    $("guess-value").textContent = fmt(SLIDER_DEFAULT);
+    $("lot-title").textContent = listing.desc;
+    $("lot-street-name").textContent = listing.street;
+    renderGallery(listing);
+    updateProgress();
+    showScreen("game");
+  }
+
+  function updateProgress(){
+    const pct = (round / TOTAL_ROUNDS) * 100;
+    $("progress-fill").style.width = pct + "%";
+    $("progress-fill-2").style.width = pct + "%";
+    $("round-label").textContent = "Квартира " + (round+1) + " из " + TOTAL_ROUNDS;
+    $("round-label-2").textContent = "Квартира " + (round+1) + " из " + TOTAL_ROUNDS;
+    $("score-chip").textContent = totalScore + " баллов";
+    $("score-chip-2").textContent = totalScore + " баллов";
+  }
+
+  function submitGuess(){
+    const guess = parseInt(slider.value, 10);
+    const price = currentListing.price;
+    const diff = guess - price;                       // >0 — завысил, <0 — занизил
+    const errPct = Math.abs(diff) / price * 100;
+    const signedPct = diff / price * 100;
+    const points = calcPoints(errPct);
+    totalScore += points;
+    results.push({ guess, price, diff, errPct, signedPct, points, listing: currentListing });
+
+    // Вердикт
+    const v = $("verdict");
+    v.className = "verdict " + (errPct <= 5 ? "perfect" : errPct <= 20 ? "close" : "far");
+    let emoji, title, sub;
+    if (Math.abs(diff) < 1000){ emoji = "🎯"; title = "Точно в цель!"; }
+    else if (errPct <= 5){ emoji = "🔥"; title = "Почти идеально!"; }
+    else if (diff < 0 && errPct <= 20){ emoji = "🤏"; title = "Немного занизил"; }
+    else if (diff > 0 && errPct <= 20){ emoji = "😮"; title = "Немного завысил"; }
+    else if (diff < 0){ emoji = "😅"; title = "Сильно занизил"; }
+    else { emoji = "💸"; title = "Сильно завысил"; }
+    sub = errPct < 0.5 ? "Ты угадал цену с точностью до рубля!" :
+          "Отклонение от реальной цены — " + errPct.toFixed(1).replace(".", ",") + "%";
+    $("v-emoji").textContent = emoji;
+    $("v-title").textContent = title;
+    $("v-sub").textContent = sub;
+    $("v-points").textContent = points;
+
+    $("cb-user").textContent = fmt(guess) + " ₽";
+    $("cb-real").textContent = fmt(price) + " ₽";
+
+    const dv = $("diff-value");
+    if (diff === 0){
+      dv.textContent = "Идеально! 0 ₽";
+      dv.className = "d-value zero";
+    } else {
+      const dir = diff > 0 ? "переплата" : "недооценка";
+      dv.textContent = fmt(Math.abs(diff)) + " ₽ · " + dir + " (" + errPct.toFixed(1).replace(".", ",") + "%)";
+      dv.className = "d-value " + (diff > 0 ? "over" : "under");
+    }
+
+    $("lot-link").href = currentListing.url;
+    updateProgress();
+    $("btn-next").textContent = (round + 1 === TOTAL_ROUNDS) ? "К итогам игры 🏁" : "Следующая квартира";
+    showScreen("result");
+  }
+
+  function nextRound(){
+    if (round + 1 < TOTAL_ROUNDS){
+      round++;
+      showRound();
+    } else {
+      showFinal();
+    }
+  }
+
+  // ---------- Архетипы ----------
+  function pickArchetype(){
+    const avgSigned = results.reduce((s, r) => s + r.signedPct, 0) / results.length;
+    const avgErr = results.reduce((s, r) => s + r.errPct, 0) / results.length;
+    if (avgSigned <= -8) return {
+      cls: "greedy", emoji: "😏", title: "Жадный студент",
+      desc: "Ты стабильно называл цены ниже реальных — в среднем на " + Math.abs(avgSigned).toFixed(0) + "%. Похоже, ты ищешь выгоду там, где её уже нет: дешёвые квартиры в Коми давно разобрали! Средняя ошибка — " + avgErr.toFixed(0) + "%."
+    };
+    if (avgSigned >= 8) return {
+      cls: "spendthrift", emoji: "💸", title: "Транжира",
+      desc: "Ты как правило завышал цены — в среднем на " + avgSigned.toFixed(0) + "% выше реальных. Продавцы в Коми были бы рады такому покупателю! Средняя ошибка — " + avgErr.toFixed(0) + "%."
+    };
+    return {
+      cls: "adequate", emoji: "🤝", title: "Адекватный квартирант",
+      desc: "Твои оценки почти всегда совпадали с реальными ценами (средний сдвиг всего " + (avgSigned >= 0 ? "+" : "") + avgSigned.toFixed(0) + "%). Ты прекрасно чувствуешь рынок недвижимости Коми!"
+    };
+  }
+
+  function showFinal(){
+    const a = pickArchetype();
+    $("archetype").className = "archetype " + a.cls;
+    $("a-emoji").textContent = a.emoji;
+    $("a-title").textContent = a.title;
+    $("a-desc").textContent = a.desc;
+    $("total-points").textContent = totalScore;
+
+    const list = $("rounds-list");
+    list.innerHTML = "";
+    results.forEach((r, i) => {
+      const item = document.createElement("div");
+      item.className = "round-item";
+      const shortDesc = (r.listing.desc || "").split(",")[0] + ", " + (r.listing.street || "");
+      item.innerHTML =
+        '<div class="r-num">' + (i+1) + '</div>' +
+        '<div class="r-info"><div class="r-title"></div>' +
+        '<div class="r-prices">Ты: ' + fmt(r.guess) + ' ₽ · Реал: ' + fmt(r.price) + ' ₽</div></div>' +
+        '<div class="r-points ' + (r.points >= 60 ? "good" : r.points < 25 ? "bad" : "") + '">+' + r.points + '</div>';
+      item.querySelector(".r-title").textContent = shortDesc;
+      list.appendChild(item);
+    });
+    showScreen("final");
+  }
+
+  // ---------- События ----------
+  slider.addEventListener("input", () => {
+    $("guess-value").textContent = fmt(parseInt(slider.value, 10));
+  });
+  $("btn-start").addEventListener("click", startGame);
+  $("btn-guess").addEventListener("click", submitGuess);
+  $("btn-next").addEventListener("click", nextRound);
+  $("btn-restart").addEventListener("click", startGame);
+})();
+</script>
+</body>
+</html>
